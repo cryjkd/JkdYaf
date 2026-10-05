@@ -6,6 +6,12 @@ namespace Conf;
 
 class JkdConf
 {
+    /**
+     * 已解析配置缓存（避免重复解析 ini 文件）
+     *
+     * @var array
+     */
+    private static $cache = [];
 
     /**
      * 获取配置
@@ -28,7 +34,10 @@ class JkdConf
             return false;
         }
 
-        $config = new \Yaf\Config\Ini($configFile);
+        if (!isset(self::$cache[$configFile])) {
+            self::$cache[$configFile] = new \Yaf\Config\Ini($configFile);
+        }
+        $config = self::$cache[$configFile];
         if ($isEnv != true) {
             if ($key) {
                 return $config->get($key);

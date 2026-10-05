@@ -17,7 +17,6 @@ class HttpServer
 
     private $ip;
     private $port;
-    private $globals;
 
     private function __construct()
     {
@@ -157,6 +156,11 @@ class HttpServer
         //设置时区
         date_default_timezone_set('PRC');
 
+        //进程级 PHP 设置（常驻内存下仅需在 Worker 启动时设置一次）
+        ini_set('memory_limit', '-1');
+        ini_set('display_errors', 'On');
+        ini_set('error_reporting', E_ALL);
+
         // 启动Redis连接池
         $this->startRedis($workerId);
         // 启动Mysql连接池
@@ -200,16 +204,11 @@ class HttpServer
 //        echo '运行前内存：' . round(memory_get_usage() / 1024 / 1024, 2) . 'MB', PHP_EOL;
         $_startTime = microtime(true);
 
-        ini_set('memory_limit', '-1');
-        ini_set('display_errors', 'On');    //是否显示错误
-        ini_set('error_reporting', E_ALL);  //设置错误的报告级别
-
         $response->header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
         $response->header('Access-Control-Allow-Methods', 'GET, POST, PUT');
         $response->header('Access-Control-Allow-Origin', '*');  //解决跨域
         $response->header('Content-Type', 'application/json');
 
-        $this->globals = $GLOBALS;
         $requestMethod = $request->server['request_method'] ?? '';
         $requestRouteData = \Route\JkdRoute::get()->getRoute($request->server['request_uri'] ?? '');
         $requestRoute = $requestRouteData['action'] ?? '';
@@ -221,7 +220,7 @@ class HttpServer
 
             ob_start();
             $yafRequest = new Yaf\Request\Http($requestRoute);
-            $this->globals['YAF_HTTP_REQUEST'] = $yafRequest;
+            $GLOBALS['YAF_HTTP_REQUEST'] = $yafRequest;
             //关闭视图
             Yaf\Dispatcher::getInstance()->autoRender(FALSE);
 
@@ -278,25 +277,23 @@ class HttpServer
         $post = $request->post ?? [];
         $cookie = $request->cookie ?? [];
         $files = $request->files ?? [];
+        $rawContent = $request->rawContent() ?? '';
 
         // 兼容 JSON 请求体：非表单提交时尝试解析原始内容
-        if (empty($post)) {
-            $rawContent = $request->getContent();
-            if ($rawContent) {
-                $jsonParams = json_decode($rawContent, true);
-                if (is_array($jsonParams)) {
-                    $post = $jsonParams;
-                }
+        if (empty($post) && $rawContent !== '') {
+            $jsonParams = json_decode($rawContent, true);
+            if (is_array($jsonParams)) {
+                $post = $jsonParams;
             }
         }
 
-        $this->globals['REQUEST_SERVER'] = $server;
-        $this->globals['REQUEST_HEADER'] = $header;
-        $this->globals['REQUEST_GET'] = $get;
-        $this->globals['REQUEST_POST'] = $post;
-        $this->globals['REQUEST_COOKIE'] = $cookie;
-        $this->globals['REQUEST_FILES'] = $files;
-        $this->globals['REQUEST_RAW_CONTENT'] = $request->rawContent();
+        $GLOBALS['REQUEST_SERVER'] = $server;
+        $GLOBALS['REQUEST_HEADER'] = $header;
+        $GLOBALS['REQUEST_GET'] = $get;
+        $GLOBALS['REQUEST_POST'] = $post;
+        $GLOBALS['REQUEST_COOKIE'] = $cookie;
+        $GLOBALS['REQUEST_FILES'] = $files;
+        $GLOBALS['REQUEST_RAW_CONTENT'] = $rawContent;
 
         $params = $needMethod == 'GET' ? $get : $post;
         if ($params && is_array($params)) {
@@ -305,7 +302,7 @@ class HttpServer
                 $params[$i] = safe_replace($requestParam);
             }
         }
-        $this->globals['REQUEST_PARAMS'] = $params;
+        $GLOBALS['REQUEST_PARAMS'] = $params;
 
         return $params;
     }
@@ -324,6 +321,7 @@ class HttpServer
         unset($GLOBALS['REQUEST_FILES']);
         unset($GLOBALS['REQUEST_RAW_CONTENT']);
         unset($GLOBALS['REQUEST_PARAMS']);
+        unset($GLOBALS['YAF_HTTP_REQUEST']);
     }
 
 
