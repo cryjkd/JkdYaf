@@ -51,7 +51,7 @@ class JkdTask
     {
         $clas = new $taskClass();
         return Timer::tick($ms, function () use ($clas, $data) {
-            $clas->task($data);
+            $clas->handle($data);
         });
     }
 

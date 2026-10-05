@@ -53,7 +53,8 @@ class HttpServer
      */
     public function start()
     {
-        $pids = file_get_contents($this->jkdYafConfig['common']['pid_file']);
+        $pidFile = $this->jkdYafConfig['common']['pid_file'];
+        $pids = is_file($pidFile) ? file_get_contents($pidFile) : '';
         if ($pids) {
             return \Jkd::echoStr('JkdYaf is running');
         } else {
@@ -70,7 +71,8 @@ class HttpServer
      */
     public function stop()
     {
-        $pids = file_get_contents($this->jkdYafConfig['common']['pid_file']);
+        $pidFile = $this->jkdYafConfig['common']['pid_file'];
+        $pids = is_file($pidFile) ? file_get_contents($pidFile) : '';
         if ($pids) {
             $pids = explode('|', $pids);
             foreach ($pids as $pid) {
@@ -97,7 +99,8 @@ class HttpServer
 
     public function status()
     {
-        $pids = file_get_contents($this->jkdYafConfig['common']['pid_file']);
+        $pidFile = $this->jkdYafConfig['common']['pid_file'];
+        $pids = is_file($pidFile) ? file_get_contents($pidFile) : '';
         $pid = $pids ? (explode('|', $pids)[0] ?? 0) : 0;
         if ($pid && Process::kill($pid, PRIO_PROCESS)) {
             self::$daemonize = true;
@@ -272,10 +275,20 @@ class HttpServer
         $server = $request->server ?? [];
         $header = $request->header ?? [];
         $get = $request->get ?? [];
-//        $post = $request->post ?? [];
-        $post = $request->getContent() ?? [];
+        $post = $request->post ?? [];
         $cookie = $request->cookie ?? [];
         $files = $request->files ?? [];
+
+        // 兼容 JSON 请求体：非表单提交时尝试解析原始内容
+        if (empty($post)) {
+            $rawContent = $request->getContent();
+            if ($rawContent) {
+                $jsonParams = json_decode($rawContent, true);
+                if (is_array($jsonParams)) {
+                    $post = $jsonParams;
+                }
+            }
+        }
 
         $this->globals['REQUEST_SERVER'] = $server;
         $this->globals['REQUEST_HEADER'] = $header;

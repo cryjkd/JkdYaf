@@ -17,7 +17,7 @@ class JkdAuth
     public function handle()
     {
         //请求参数
-        $params = \Yaf\Registry::get('REQUEST_PARAMS');
+        $params = $GLOBALS['REQUEST_PARAMS'] ?? [];
         $token = $params['token'] ?? '';
         if (!$token) {
             JkdResponse::Fail('Missing Token');

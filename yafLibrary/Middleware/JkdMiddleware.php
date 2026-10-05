@@ -8,7 +8,6 @@
 
 namespace Middleware;
 
-use Log\JkdLog;
 use Route\JkdRoute;
 
 class JkdMiddleware
@@ -35,10 +34,8 @@ class JkdMiddleware
     public function handle()
     {
         $middlewareArr = JkdRoute::get()->getRouteMiddleware();
-        JkdLog::info('ss', $middlewareArr);
 
         foreach ($middlewareArr as $type => $middleware) {
-            JkdLog::info($type, $middleware);
             foreach ($middleware as $middle) {
                 if ($type == 'app') {
                     $className = 'app\middleware\\' . $middle;

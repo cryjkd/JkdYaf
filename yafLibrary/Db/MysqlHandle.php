@@ -148,7 +148,7 @@ class MysqlHandle implements DbInterface
             $this->_dbh->beginTransaction();
             $this->_dbh->exec($sql);
             $this->_dbh->commit();
-        } catch (PDOException $ex) {
+        } catch (\PDOException $ex) {
             $this->_dbh->rollBack();
         }
     }

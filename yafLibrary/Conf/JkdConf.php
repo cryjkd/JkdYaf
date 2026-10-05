@@ -23,7 +23,12 @@ class JkdConf
         $fileName = $list[0];
         $key = $list[1] ?? '';
 
-        $config = new \Yaf\Config\Ini(CONF_PATH . '/' . $fileName . '.ini');
+        $configFile = CONF_PATH . '/' . $fileName . '.ini';
+        if (!is_file($configFile)) {
+            return false;
+        }
+
+        $config = new \Yaf\Config\Ini($configFile);
         if ($isEnv != true) {
             if ($key) {
                 return $config->get($key);

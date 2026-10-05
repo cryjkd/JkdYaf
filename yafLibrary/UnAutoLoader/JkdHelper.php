@@ -17,7 +17,6 @@ if (!function_exists('dump')) {
 
             $output = '<pre>' . $label . $output . '</pre>';
         }
-        $output = '<pre>' . $label . $output . '</pre>';
         if ($echo) {
             echo($output);
             return;
@@ -71,7 +70,7 @@ if (!function_exists('getService')) {
 if (!function_exists('checkEnv')) {
     function checkEnv()
     {
-        return Yaf\ENVIRON != 'product' ? true : false;
+        return \Yaf\Application::app()->environ() != 'product' ? true : false;
     }
 }
 

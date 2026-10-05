@@ -48,7 +48,6 @@ class ApiAuth
      */
     public function arrToUrl($arr)
     {
-        $arr = str_replace(" ","+", $arr);
         return urldecode(http_build_query($arr));
     }
 

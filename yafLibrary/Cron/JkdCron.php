@@ -12,7 +12,7 @@ class JkdCron
 
     public static function start($masterPid, $timerPidFile)
     {
-        if (\Jkd\JkdPreventDuplication::check('CRON') || file_get_contents($timerPidFile) == $masterPid) {
+        if (\Jkd\JkdPreventDuplication::check('CRON') || (is_file($timerPidFile) && file_get_contents($timerPidFile) == $masterPid)) {
             $config = JkdConf::get('crontab', false);
             $confArray = $config ? $config->toArray() : [];
 
