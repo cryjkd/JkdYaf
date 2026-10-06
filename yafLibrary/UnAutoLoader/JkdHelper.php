@@ -163,29 +163,36 @@ if (!function_exists('getDirContent')) {
 if (!function_exists('remove_xss')) {
     function remove_xss($string)
     {
-        $string = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/S', '', $string);
-
-        $parm1 = array('javascript', 'vbscript', 'expression', 'applet', 'meta', 'xml', 'blink', 'link', 'script', 'embed', 'object', 'iframe', 'frame', 'frameset', 'ilayer', 'layer', 'bgsound', 'title', 'base');
-
-        $parm2 = array('onabort', 'onactivate', 'onafterprint', 'onafterupdate', 'onbeforeactivate', 'onbeforecopy', 'onbeforecut', 'onbeforedeactivate', 'onbeforeeditfocus', 'onbeforepaste', 'onbeforeprint', 'onbeforeunload', 'onbeforeupdate', 'onblur', 'onbounce', 'oncellchange', 'onchange', 'onclick', 'oncontextmenu', 'oncontrolselect', 'oncopy', 'oncut', 'ondataavailable', 'ondatasetchanged', 'ondatasetcomplete', 'ondblclick', 'ondeactivate', 'ondrag', 'ondragend', 'ondragenter', 'ondragleave', 'ondragover', 'ondragstart', 'ondrop', 'onerror', 'onerrorupdate', 'onfilterchange', 'onfinish', 'onfocus', 'onfocusin', 'onfocusout', 'onhelp', 'onkeydown', 'onkeypress', 'onkeyup', 'onlayoutcomplete', 'onload', 'onlosecapture', 'onmousedown', 'onmouseenter', 'onmouseleave', 'onmousemove', 'onmouseout', 'onmouseover', 'onmouseup', 'onmousewheel', 'onmove', 'onmoveend', 'onmovestart', 'onpaste', 'onpropertychange', 'onreadystatechange', 'onreset', 'onresize', 'onresizeend', 'onresizestart', 'onrowenter', 'onrowexit', 'onrowsdelete', 'onrowsinserted', 'onscroll', 'onselect', 'onselectionchange', 'onselectstart', 'onstart', 'onstop', 'onsubmit', 'onunload');
-
-        $parm = array_merge($parm1, $parm2);
-
-        for ($i = 0; $i < sizeof($parm); $i++) {
-            $pattern = '/';
-            for ($j = 0; $j < strlen($parm[$i]); $j++) {
-                if ($j > 0) {
-                    $pattern .= '(';
-                    $pattern .= '(&#[x|X]0([9][a][b]);?)?';
-                    $pattern .= '|(&#0([9][10][13]);?)?';
-                    $pattern .= ')?';
-                }
-                $pattern .= $parm[$i][$j];
-            }
-            $pattern .= '/i';
-            $string = preg_replace($pattern, ' ', $string);
+        if (!is_string($string) || $string === '') {
+            return $string;
         }
-        return $string;
+
+        static $pattern = null;
+        if ($pattern === null) {
+            $parm1 = array('javascript', 'vbscript', 'expression', 'applet', 'meta', 'xml', 'blink', 'link', 'script', 'embed', 'object', 'iframe', 'frame', 'frameset', 'ilayer', 'layer', 'bgsound', 'title', 'base');
+
+            $parm2 = array('onabort', 'onactivate', 'onafterprint', 'onafterupdate', 'onbeforeactivate', 'onbeforecopy', 'onbeforecut', 'onbeforedeactivate', 'onbeforeeditfocus', 'onbeforepaste', 'onbeforeprint', 'onbeforeunload', 'onbeforeupdate', 'onblur', 'onbounce', 'oncellchange', 'onchange', 'onclick', 'oncontextmenu', 'oncontrolselect', 'oncopy', 'oncut', 'ondataavailable', 'ondatasetchanged', 'ondatasetcomplete', 'ondblclick', 'ondeactivate', 'ondrag', 'ondragend', 'ondragenter', 'ondragleave', 'ondragover', 'ondragstart', 'ondrop', 'onerror', 'onerrorupdate', 'onfilterchange', 'onfinish', 'onfocus', 'onfocusin', 'onfocusout', 'onhelp', 'onkeydown', 'onkeypress', 'onkeyup', 'onlayoutcomplete', 'onload', 'onlosecapture', 'onmousedown', 'onmouseenter', 'onmouseleave', 'onmousemove', 'onmouseout', 'onmouseover', 'onmouseup', 'onmousewheel', 'onmove', 'onmoveend', 'onmovestart', 'onpaste', 'onpropertychange', 'onreadystatechange', 'onreset', 'onresize', 'onresizeend', 'onresizestart', 'onrowenter', 'onrowexit', 'onrowsdelete', 'onrowsinserted', 'onscroll', 'onselect', 'onselectionchange', 'onselectstart', 'onstart', 'onstop', 'onsubmit', 'onunload');
+
+            // 关键字字符之间可被插入的 HTML 实体（换行/回车/Tab），用于识别被拆分的 XSS 关键字
+            $entity = '((&#[x|X]0([9][a][b]);?)?|(&#0([9][10][13]);?)?)?';
+
+            $alternatives = array();
+            foreach (array_merge($parm1, $parm2) as $word) {
+                $len = strlen($word);
+                $sub = '';
+                for ($j = 0; $j < $len; $j++) {
+                    if ($j > 0) {
+                        $sub .= $entity;
+                    }
+                    $sub .= $word[$j];
+                }
+                $alternatives[] = '(?:' . $sub . ')';
+            }
+            $pattern = '/' . implode('|', $alternatives) . '/i';
+        }
+
+        $string = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/S', '', $string);
+        return preg_replace($pattern, ' ', $string);
     }
 }
 
@@ -196,20 +203,11 @@ if (!function_exists('remove_xss')) {
 if (!function_exists('safe_replace')) {
     function safe_replace($string)
     {
-        $string = str_replace('%20', '', $string);
-        $string = str_replace('%27', '', $string);
-        $string = str_replace('%2527', '', $string);
-        $string = str_replace('*', '', $string);
-        $string = str_replace('"', '"', $string);
-        $string = str_replace("'", '', $string);
-        $string = str_replace('"', '', $string);
-        $string = str_replace(';', '', $string);
-        $string = str_replace('<', '<', $string);
-        $string = str_replace('>', '>', $string);
-        $string = str_replace("{", '', $string);
-        $string = str_replace('}', '', $string);
-        $string = str_replace('\\', '', $string);
-        return $string;
+        return str_replace(
+            ['%20', '%27', '%2527', '*', "'", '"', ';', '{', '}', '\\'],
+            '',
+            $string
+        );
     }
 }
 

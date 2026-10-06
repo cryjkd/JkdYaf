@@ -65,19 +65,22 @@ class JkdLog
      */
     protected static function writeLog($message, $content, $channel = '')
     {
-        if (!is_string($content)) {
-            $content = json_encode($content);
-        }
-        
         $logPath = \Yaf\Registry::get('config')->log['path'] ?? APP_PATH . '/runtime/log/';   //日志路径
         $dir = $logPath . $channel;
         if (!is_dir($dir)) {
             @mkdir($dir, 0777, true);
         }
         $filename = ($channel ?: 'jkd') . '-' . date('Y-m-d') . '.log';
+        $logFile = $dir . '/' . $filename;
 
-        $str = '[' . date('Y-m-d H:i:s') . ']' . ' ' . $message . ' ' . $content . PHP_EOL;
-        error_log($str, 3, $dir . '/' . $filename);
+        // 异步写入：文件写是阻塞 IO，放入独立协程避免阻塞事件循环
+        \Swoole\Coroutine::create(function () use ($message, $content, $logFile) {
+            if (!is_string($content)) {
+                $content = json_encode($content);
+            }
+            $str = '[' . date('Y-m-d H:i:s') . ']' . ' ' . $message . ' ' . $content . PHP_EOL;
+            \Swoole\Coroutine\System::writeFile($logFile, $str, FILE_APPEND);
+        });
     }
 
 
