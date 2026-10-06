@@ -18,7 +18,9 @@ class JkdResponse
      */
     public static function output($array, $isException = false)
     {
-        echo json_encode($array);
+        // 存入协程上下文，由 HttpServer 统一读取后 json_encode 返回，
+        // 避免 echo + ob 捕获造成的二次 JSON 编解码，且协程隔离更安全。
+        jkdContext()['jkdResponse'] = $array;
         if ($isException) {
             throw new \Exception('JkdReturn', 676);
         } else {

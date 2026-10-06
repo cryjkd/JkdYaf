@@ -72,7 +72,7 @@ class JkdLog
         $logPath = \Yaf\Registry::get('config')->log['path'] ?? APP_PATH . '/runtime/log/';   //日志路径
         $dir = $logPath . $channel;
         if (!is_dir($dir)) {
-            @mkdir($dir, 0777);
+            @mkdir($dir, 0777, true);
         }
         $filename = ($channel ?: 'jkd') . '-' . date('Y-m-d') . '.log';
 

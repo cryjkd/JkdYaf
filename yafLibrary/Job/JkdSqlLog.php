@@ -5,10 +5,12 @@
 
 namespace Job;
 
-class JkdSqlLog
+use Task\JkdTaskInterface;
+
+class JkdSqlLog implements JkdTaskInterface
 {
 
-    public static function handle($params)
+    public function handle($params)
     {
         $sqlStr = $params['sqlStr'];
         $params = $params['values'];

@@ -1,5 +1,25 @@
 <?php
 
+if (!function_exists('jkdContext')) {
+    /**
+     * 获取当前协程上下文，用于存放请求级数据。
+     * 相比 $GLOBALS（进程级、跨协程共享），Context 是协程隔离的，可避免并发串数据。
+     */
+    function jkdContext()
+    {
+        $context = \Swoole\Coroutine::getContext();
+        if ($context === null) {
+            static $fallback = null;
+            if ($fallback === null) {
+                $fallback = new \Swoole\Coroutine\Context();
+            }
+            $context = $fallback;
+        }
+        return $context;
+    }
+}
+
+
 if (!function_exists('dump')) {
     function dump($var, $echo = true, $label = null, $flags = ENT_SUBSTITUTE)
     {
@@ -81,7 +101,7 @@ if (!function_exists('checkEnv')) {
 if (!function_exists('UserKey')) {
     function UserKey()
     {
-        return $GLOBALS['UserKey'];
+        return jkdContext()['UserKey'] ?? '';
     }
 }
 
@@ -92,8 +112,7 @@ if (!function_exists('UserKey')) {
 if (!function_exists('getClientIp')) {
     function getClientIp()
     {
-//        $headerData = Yaf\Registry::get('REQUEST_HEADER');
-        $headerData = $GLOBALS['REQUEST_HEADER'];
+        $headerData = jkdContext()['REQUEST_HEADER'] ?? [];
         return $headerData['x-real-ip'] ?? '';
     }
 }
@@ -315,7 +334,11 @@ if (!function_exists('importFile')) {
 if (!function_exists('checkIoStatus')) {
     function checkIoStatus($type)
     {
-        return \Yaf\Registry::get('config')['io']->$type ?? false;
+        static $ioConfig = null;
+        if ($ioConfig === null) {
+            $ioConfig = \Yaf\Registry::get('config')['io'] ?? false;
+        }
+        return $ioConfig ? ($ioConfig->$type ?? false) : false;
     }
 }
 

@@ -21,7 +21,11 @@ class JkdPreventDuplication
         $redis = $redisPool->get();
 
         $key = 'PREVENTDUPLICATION' . $type;
-        $rs = $redis->set($key, 1, ['nx', 'ex' => $ttl]);
+        // 使用 setNx 保证只在 key 不存在时设置，兼容各版本 Swoole Redis 客户端
+        $rs = $redis->setNx($key, 1);
+        if ($rs) {
+            $redis->expire($key, $ttl);
+        }
 
         $redisPool->put();
         return $rs;

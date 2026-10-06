@@ -14,8 +14,6 @@ class JkdAop
      */
     private static $instance;
 
-    private static $aopList;
-
     /**
      * AOP 解析结果缓存（按模块/控制器/动作缓存，避免每次请求重复反射解析）
      *
@@ -44,7 +42,7 @@ class JkdAop
      */
     public function getAopParser()
     {
-        $yafRequest = $GLOBALS['YAF_HTTP_REQUEST'];
+        $yafRequest = jkdContext()['YAF_HTTP_REQUEST'] ?? null;
         $moduleName = $yafRequest->module ?? '';
         $controllerName = $yafRequest->controller ?? '';
         $className = $controllerName . 'Controller';
@@ -52,7 +50,7 @@ class JkdAop
 
         $cacheKey = $moduleName . '/' . $className . '/' . $functionName;
         if (isset(self::$aopCache[$cacheKey])) {
-            self::$aopList = self::$aopCache[$cacheKey];
+            \Swoole\Coroutine::getContext()['aopList'] = self::$aopCache[$cacheKey];
             return true;
         }
 
@@ -60,8 +58,9 @@ class JkdAop
         $ref = new \ReflectionMethod($className, $functionName);
         $doc = $ref->getDocComment();
         $docParser = new DocParser();
-        self::$aopList = $docParser->parse($doc);
-        self::$aopCache[$cacheKey] = self::$aopList;
+        $aopList = $docParser->parse($doc);
+        self::$aopCache[$cacheKey] = $aopList;
+        \Swoole\Coroutine::getContext()['aopList'] = $aopList;
 
         return true;
     }
@@ -75,7 +74,8 @@ class JkdAop
      */
     public function runAop($type)
     {
-        $list = self::$aopList[$type] ?? [];
+        $aopList = \Swoole\Coroutine::getContext()['aopList'] ?? [];
+        $list = $aopList[$type] ?? [];
         if ($list) {
             foreach ($list as $li) {
                 $thisClass = $li['class'] ?? '';

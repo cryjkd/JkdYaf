@@ -6,11 +6,12 @@
 namespace Job;
 
 use Log\JkdLog;
+use Task\JkdTaskInterface;
 
-class JkdSysLog
+class JkdSysLog implements JkdTaskInterface
 {
 
-    public static function handle($params)
+    public function handle($params)
     {
         $runtime = $params['runtime'];
         $route = $params['route'];

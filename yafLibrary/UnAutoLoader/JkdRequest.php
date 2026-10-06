@@ -10,7 +10,7 @@ trait JkdRequest
 
     public function __construct()
     {
-        $this->JkdRequest = $GLOBALS['REQUEST_PARAMS'];
+        $this->JkdRequest = jkdContext()['REQUEST_PARAMS'] ?? [];
     }
 
 
@@ -21,7 +21,7 @@ trait JkdRequest
      */
     public function setRequest($data)
     {
-        $GLOBALS['REQUEST_PARAMS'] = $data;
+        jkdContext()['REQUEST_PARAMS'] = $data;
         $this->JkdRequest = $data;
     }
 
@@ -35,7 +35,7 @@ trait JkdRequest
     public function appendRequest($key, $value)
     {
         $this->JkdRequest[$key] = $value;
-        $GLOBALS['REQUEST_PARAMS'] = $this->JkdRequest;
+        jkdContext()['REQUEST_PARAMS'] = $this->JkdRequest;
     }
 
 }

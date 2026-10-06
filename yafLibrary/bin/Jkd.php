@@ -103,7 +103,7 @@ class Jkd
 
     public static function reqMsg($_startTime, $_endTime, $status)
     {
-        $serverData = $GLOBALS['REQUEST_SERVER'];
+        $serverData = jkdContext()['REQUEST_SERVER'] ?? [];
         $time = changeReqTime($_endTime - $_startTime);
         $num = 10 - mb_strlen($time);
         if ( $num > 0 ) {

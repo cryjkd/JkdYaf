@@ -214,22 +214,20 @@ class HttpServer
         $requestRoute = $requestRouteData['action'] ?? '';
         $needMethod = $requestRouteData['method'] ?? '';
         $needMethod = strtoupper($needMethod);
+        $requestParams = [];
         if ($requestRoute && $needMethod == $requestMethod) {
             //注册全局信息
-            $this->initRequestParam($request, $needMethod);
+            $requestParams = $this->initRequestParam($request, $needMethod);
 
-            ob_start();
             $yafRequest = new Yaf\Request\Http($requestRoute);
-            $GLOBALS['YAF_HTTP_REQUEST'] = $yafRequest;
+            jkdContext()['YAF_HTTP_REQUEST'] = $yafRequest;
             //关闭视图
             Yaf\Dispatcher::getInstance()->autoRender(FALSE);
 
             $this->app->getDispatcher()->dispatch($yafRequest);
-            $result = ob_get_contents();
-            ob_end_clean();
 
-            //返回数据处理
-            $result = $result ? json_decode($result, true) : [];
+            //从协程上下文读取响应（避免 echo/ob 捕获与二次 JSON 编解码）
+            $result = jkdContext()['jkdResponse'] ?? [];
         } else {
             $result = ['code' => 0, 'message' => '404 not found', 'data' => [], 'status' => 404];
         }
@@ -250,14 +248,14 @@ class HttpServer
             \Task\JkdTask::dispatch(\Job\JkdSysLog::class, [
                 'runtime' => $_endTime - $_startTime,
                 'route' => $request->server['request_uri'] ?? $requestRoute,
-                'params' => $GLOBALS['REQUEST_PARAMS'],
+                'params' => $requestParams,
                 'result' => $result,
             ]);
         }
 
         $this->unsetGlobals();
         $response->status($status);
-        $response->end(json_encode($result));
+        $response->end(json_encode($result, JSON_UNESCAPED_UNICODE));
 //        echo '运行后内存：' . round(memory_get_usage() / 1024 / 1024, 2) . 'MB', PHP_EOL;
     }
 
@@ -287,13 +285,14 @@ class HttpServer
             }
         }
 
-        $GLOBALS['REQUEST_SERVER'] = $server;
-        $GLOBALS['REQUEST_HEADER'] = $header;
-        $GLOBALS['REQUEST_GET'] = $get;
-        $GLOBALS['REQUEST_POST'] = $post;
-        $GLOBALS['REQUEST_COOKIE'] = $cookie;
-        $GLOBALS['REQUEST_FILES'] = $files;
-        $GLOBALS['REQUEST_RAW_CONTENT'] = $rawContent;
+        $context = jkdContext();
+        $context['REQUEST_SERVER'] = $server;
+        $context['REQUEST_HEADER'] = $header;
+        $context['REQUEST_GET'] = $get;
+        $context['REQUEST_POST'] = $post;
+        $context['REQUEST_COOKIE'] = $cookie;
+        $context['REQUEST_FILES'] = $files;
+        $context['REQUEST_RAW_CONTENT'] = $rawContent;
 
         $params = $needMethod == 'GET' ? $get : $post;
         if ($params && is_array($params)) {
@@ -302,7 +301,7 @@ class HttpServer
                 $params[$i] = safe_replace($requestParam);
             }
         }
-        $GLOBALS['REQUEST_PARAMS'] = $params;
+        $context['REQUEST_PARAMS'] = $params;
 
         return $params;
     }
@@ -313,15 +312,17 @@ class HttpServer
      */
     private function unsetGlobals()
     {
-        unset($GLOBALS['REQUEST_SERVER']);
-        unset($GLOBALS['REQUEST_HEADER']);
-        unset($GLOBALS['REQUEST_GET']);
-        unset($GLOBALS['REQUEST_POST']);
-        unset($GLOBALS['REQUEST_COOKIE']);
-        unset($GLOBALS['REQUEST_FILES']);
-        unset($GLOBALS['REQUEST_RAW_CONTENT']);
-        unset($GLOBALS['REQUEST_PARAMS']);
-        unset($GLOBALS['YAF_HTTP_REQUEST']);
+        $context = jkdContext();
+        unset($context['REQUEST_SERVER']);
+        unset($context['REQUEST_HEADER']);
+        unset($context['REQUEST_GET']);
+        unset($context['REQUEST_POST']);
+        unset($context['REQUEST_COOKIE']);
+        unset($context['REQUEST_FILES']);
+        unset($context['REQUEST_RAW_CONTENT']);
+        unset($context['REQUEST_PARAMS']);
+        unset($context['YAF_HTTP_REQUEST']);
+        unset($context['jkdResponse']);
     }
 
 

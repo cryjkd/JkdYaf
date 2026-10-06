@@ -16,6 +16,8 @@ class JkdBaseError extends  \Yaf\Controller_Abstract
     {
         if ($exception->getCode() != 676) {
             JkdLog::error($exception);
+            // 返回统一的 500 响应（不再返回空数组 + 200）
+            jkdContext()['jkdResponse'] = ['code' => 2, 'message' => '500 System error!', 'status' => 500];
         }
     }
 }

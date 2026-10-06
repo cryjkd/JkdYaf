@@ -72,7 +72,7 @@ class JkdRoute
      */
     public function getRouteMiddleware()
     {
-        $serverData = $GLOBALS['REQUEST_SERVER'];
+        $serverData = jkdContext()['REQUEST_SERVER'] ?? [];
         $route = $serverData['request_uri'] ?? '';  //客户端请求的路由
         return self::$routeList[$route]['middleware'] ?? [];
     }
