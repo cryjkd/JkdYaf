@@ -60,6 +60,7 @@ runtime/pool/redis_pool_num.count
 5. **关闭调试**：确认 `app.ini` 中 `application.dispatcher.throwException` 与 `catchException` 配置合理。
 6. **连接池上限**：根据实际并发调整 `db.ini` / `redis.ini` 的 `pool_max`。
 7. **环境区分**：通过 `php.ini` 的 `yaf.environ` 区分 `product` / `develop`，配置中使用 `[product : common]` 继承。
+8. **协程安全**：框架的请求级数据（参数、响应、AOP 列表等）存放在协程上下文（`jkdContext()`）中，协程隔离、随请求结束自动释放。业务代码中请勿用 `$GLOBALS` 或静态属性保存单次请求的数据，以免并发串数据。
 
 ## 7. 常见问题
 
@@ -69,7 +70,7 @@ runtime/pool/redis_pool_num.count
 
 ### 内存占用持续增长
 
-常驻内存下注意释放全局变量、避免循环引用；框架已内置每小时 `gc_mem_caches()`。
+请求级数据已改用协程上下文（`jkdContext()`）存储，随协程结束自动释放；业务代码仍应避免用全局/静态变量持有大对象或循环引用。框架已内置每小时 `gc_mem_caches()`。
 
 ### 修改代码不生效
 

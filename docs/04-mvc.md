@@ -58,11 +58,11 @@ class Index extends JkdBaseService
 
 ### 请求参数
 
-- `$this->JkdRequest`：请求参数数组，等价于 `$GLOBALS['REQUEST_PARAMS']`
+- `$this->JkdRequest`：请求参数数组（GET 的 query 或 POST 的 body）
 - `setRequest($data)`：整体替换请求参数
 - `appendRequest($key, $value)`：追加单个参数
 
-> 请求参数在 `HttpServer::initRequestParam()` 中做了 XSS / 安全过滤后写入全局变量。
+> 请求参数在 `HttpServer::initRequestParam()` 中做了 XSS / 安全过滤后，存入**协程上下文**（`jkdContext()['REQUEST_PARAMS']`，协程隔离）。相比 `$GLOBALS`（进程级、跨协程共享），协程上下文可避免并发请求之间串数据；业务代码请统一通过 `$this->JkdRequest` 获取参数。
 
 ---
 
@@ -87,6 +87,8 @@ JkdResponse::Debug($data = "", $message = "debug", $status = 400, $code = 3);
 ```
 
 > `Fail` / `Error` / `Debug` 通过抛出 `JkdReturn`（code=676）异常来中断流程，该异常会被 `JkdBaseError` 捕获且不记录日志。
+
+响应不再通过 `echo` + 输出缓冲（`ob_*`）捕获，而是由 `JkdResponse::output()` 把数组写入协程上下文（`jkdContext()['jkdResponse']`），`HttpServer` 统一读取后 `json_encode` 返回，避免了二次 JSON 编解码。未捕获异常（非 676）会由 `JkdBaseError` 统一返回 `500 System error!`。
 
 ---
 

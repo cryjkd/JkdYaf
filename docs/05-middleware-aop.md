@@ -62,7 +62,7 @@ api.middleware = "JkdSign,JkdAuth"
 
 ### 1.4 执行时机
 
-中间件在 Yaf `routerStartup` 钩子中执行（见 `Plugin\Jkd`），即路由分发前。中间件中可通过 `$GLOBALS['REQUEST_PARAMS']` 获取请求参数。
+中间件在 Yaf `routerStartup` 钩子中执行（见 `Plugin\Jkd`），即路由分发前。中间件中可通过协程上下文获取请求参数：`jkdContext()['REQUEST_PARAMS']`。
 
 ### 1.5 内置中间件
 
@@ -149,7 +149,7 @@ public function indexAction()
 
 `Aop\JkdAop` 在 `routerShutdown` 时：
 
-1. 通过 `$GLOBALS['YAF_HTTP_REQUEST']` 拿到模块 / 控制器 / 动作；
+1. 通过协程上下文中的 `YAF_HTTP_REQUEST` 拿到模块 / 控制器 / 动作；
 2. 用 `ReflectionMethod` 读取动作方法的 DocBlock；
 3. `DocParser` 解析出 `AopBefore/AopAfter/AopAround` 列表；
 4. 在对应钩子中实例化切面类并调用指定方法。
