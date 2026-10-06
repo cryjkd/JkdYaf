@@ -29,7 +29,6 @@ class JkdCron
 
                 //定期清理碎片内存
                 \Swoole\Timer::tick(3600000, function () {
-                    $memory = memory_get_usage();
                     gc_mem_caches();
                 });
 

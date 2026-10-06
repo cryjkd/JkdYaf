@@ -99,9 +99,13 @@ class JkdParser
             }
             // If the value of start is larger than the value of min, the value of start should equal with the value of min.
             $start < $min && $start = $min;
+            $step = (int)$exploded[1];
+            if ($step <= 0) {
+                $step = 1; // 防止 */0 导致死循环
+            }
             for ($i = $start; $i <= $max;) {
                 $result[] = $i;
-                $i += $exploded[1];
+                $i += $step;
             }
         } elseif (strpos($string, '-') !== false) {
             $result = array_merge($result, $this->parseSegment($string . '/1', $min, $max, $start));

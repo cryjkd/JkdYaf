@@ -177,6 +177,10 @@ class HttpServer
 
 //        捕获错误
         set_error_handler(function ($errno, $errstr, $errfile, $errline) {
+            // 尊重 error_reporting 配置与 @ 抑制符，避免记录被抑制/忽略的错误
+            if (!(error_reporting() & $errno)) {
+                return false;
+            }
             \Log\JkdLog::error([
                 'Code:' => $errno,
                 'Msg:' => $errstr,

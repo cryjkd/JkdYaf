@@ -23,13 +23,15 @@ class MysqlHandle implements DbInterface
     function halt($msg = '', $sql = '')
     {
         $error_info = $this->_sth->errorInfo();
-        $s = '<pre>';
-        $s .= '<b>Error:</b>' . $error_info[2] . '<br />';
-        $s .= '<b>Errno:</b>' . $error_info[1] . '<br />';
-        $s .= '<b>Sql:</b>' . $this->_sql;
-
-        JkdLog::error($s);
-        die();
+        $errorMsg = $error_info[2] ?? 'Unknown SQL error';
+        $errno = (int)($error_info[1] ?? 0);
+        JkdLog::error([
+            'Error' => $errorMsg,
+            'Errno' => $errno,
+            'Sql' => $this->_sql,
+        ]);
+        // 常驻内存下不能 die()（会终止整个 Worker 进程），改为抛异常返回 500
+        throw new \PDOException($errorMsg, $errno);
     }
 
 
@@ -150,6 +152,7 @@ class MysqlHandle implements DbInterface
             $this->_dbh->commit();
         } catch (\PDOException $ex) {
             $this->_dbh->rollBack();
+            throw $ex; // 回滚后重新抛出，避免调用方误以为事务成功
         }
     }
 

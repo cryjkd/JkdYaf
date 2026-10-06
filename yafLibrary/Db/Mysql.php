@@ -18,7 +18,8 @@ class Mysql extends MysqlHandle
             $this->_dbh = new \PDO('mysql:dbname=' . $dbname . ';host=' . $dbhost . ';port=' . $dbport . ';charset=' . $dbcharset, $username, $password, [\PDO::ATTR_PERSISTENT => true, \PDO::ATTR_EMULATE_PREPARES  => false]);
         } catch (\PDOException $e) {
             JkdLog::error($e->getMessage());
-            die();
+            // 常驻内存下不能 die()（会终止整个 Worker 进程），改为抛出异常由统一错误处理返回 500
+            throw $e;
         }
     }
 
